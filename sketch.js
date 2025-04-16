@@ -1,20 +1,15 @@
-let noGraphicsBuffers = 1;
-
-function getNoPoints() {
-  return 10;
-}
-function getNoCurves() {
-  return 15;
-}
-
+const noGraphicsBuffers = 1;
+let noCurvePoints; // Number of points in each curve
+let noCurves;
 const sideLength = 1000; // Size of each buffer
-let curves = new Array(getNoCurves());
-let curveGap = 100; // sideLength / (getNoCurves() + 1);
 
-let pointGap = sideLength / (getNoPoints() - 1);
-let topLine = new Array(getNoPoints());
+let curves = new Array(noCurves);
+let curveGap = 10; // sideLength / (noCurves + 1);
 
-let bottomLine = new Array(getNoPoints());
+let pointGap = sideLength / (noCurvePoints - 1);
+let topLine = new Array(noCurvePoints);
+
+let bottomLine = new Array(noCurvePoints);
 
 // let palette = ["#F8FAFC", "#D9EAFD", "#BCCCDC", "#9AA6B2", "#F14A00"];
 // let palette = ["#9CFA08", "#9CFA08", "#9CFA08", "#9CFA08", "#9CFA08"];
@@ -27,19 +22,38 @@ const palettes = {
   forest: ["#2b2d42", "#8d99ae", "#edf2f4", "#ef233c", "#d90429"],
   retro: ["#ffbe0b", "#fb5607", "#ff006e", "#8338ec", "#3a86ff"],
   chris: ["#F8FAFC", "#D9EAFD", "#BCCCDC", "#9AA6B2", "#F14A00"],
-  greens: ["#9CFA08", "#9CFA08", "#9CFA08", "#9CFA08", "#9CFA08"],
+  greens: ["#9CFA08", "#7BC043", "#58B368", "#3B945E", "#2F4858"],
+  vaporwave: ["#ff71ce", "#01cdfe", "#05ffa1", "#b967ff", "#fffb96"],
+  dusk: ["#3c1642", "#086375", "#1dd3b0", "#affc41", "#b2ff9e"],
+  earth: ["#a9714b", "#eac67a", "#c6a15b", "#5e503f", "#a7c4bc"],
+  candy: ["#ffb6b9", "#fae3d9", "#bbded6", "#8ac6d1", "#d6d6d6"],
+  fire: ["#ff6f3c", "#ff9a3c", "#ffc93c", "#ff9a3c", "#ff6f3c"],
+  cold: ["#ced8f0", "#a6b1e1", "#b486ab", "#985277", "#5c374c"],
+  night: ["#0d1b2a", "#1b263b", "#415a77", "#778da9", "#e0e1dd"],
+  tropical: ["#ff7e5f", "#feb47b", "#ff6e7f", "#bfe9ff", "#00c6ff"],
+  muted: ["#2e4057", "#66a182", "#c4a35a", "#d0c1a1", "#f7f3e3"],
+  pop: ["#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93"],
+  grayscale: ["#111", "#333", "#666", "#999", "#ccc"],
 };
 
 // Example usage in p5.js
-let palette = palettes.forest;
+let palettePrimary, paletteSecondary;
 let panels = [];
 let graphicsBuffers = new Array(noGraphicsBuffers);
-let activeBackground = palette[1];
+let activeBackground;
 let xOffset = 100;
 let yOffset = 100;
 
 function setup() {
   noLoop();
+
+  noCurvePoints = floor(random(10, 40)); // Number of points in each curve
+  noCurves = floor(random(10, 100));
+
+  palettePrimary = getRandomPalette(palettes);
+  paletteSecondary = getRandomPalette(palettes);
+
+  activeBackground = palettePrimary[1];
 
   createCanvas(
     // sideLength * noBuffers + 100 * (noBuffers + 1),
@@ -49,7 +63,7 @@ function setup() {
   background(activeBackground);
 
   // grid anchor points
-  for (let i = 0; i < getNoPoints(); i++) {
+  for (let i = 0; i < noCurvePoints; i++) {
     topLine[i] = createVector(i * pointGap, 0);
     bottomLine[i] = createVector(i * pointGap, sideLength);
   }
@@ -81,7 +95,7 @@ function drawGrid(localBuffer) {
   // Draw vertical "grid" lines
   const drawGridLines = true;
   if (drawGridLines) {
-    for (let x = 0; x < getNoPoints(); x++) {
+    for (let x = 0; x < noCurvePoints; x++) {
       localBuffer.line(
         topLine[x].x,
         topLine[x].y,
@@ -97,7 +111,6 @@ function generatePanels(graphicsBuffer) {
   curves = generateCurveData(graphicsBuffer);
 
   // const drawables = [topLine, ...curves, bottomLine];
-  // const drawables = [topLine, ...curves, bottomLine];
   const drawables = [...curves];
 
   // The body of this loop "looks ahead by 1"
@@ -105,18 +118,19 @@ function generatePanels(graphicsBuffer) {
   for (let d = 0; d < drawables.length - 1; d++) {
     const upper = drawables[d];
     const lower = drawables[d + 1];
+    const offset = 0; // random(-10, 10); // Random offset for the panels
 
     // Create the "Panels"
-    for (let i = 0; i < getNoPoints(); i++) {
-      if (i < getNoPoints() - 1) {
+    for (let i = 0; i < noCurvePoints; i++) {
+      if (i < noCurvePoints - 1) {
         const panel = {
-          topLeftX: upper[i].x,
+          topLeftX: upper[i].x + offset,
           topLeftY: upper[i].y,
-          topRightX: upper[i + 1].x,
+          topRightX: upper[i + 1].x + offset,
           topRightY: upper[i + 1].y,
-          bottomLeftX: lower[i].x,
+          bottomLeftX: lower[i].x - offset,
           bottomLeftY: lower[i].y,
-          bottomRightX: lower[i + 1].x,
+          bottomRightX: lower[i + 1].x - offset,
           bottomRightY: lower[i + 1].y,
         };
 
@@ -129,16 +143,16 @@ function generatePanels(graphicsBuffer) {
 }
 
 function generateCurveData(graphicsBuffer) {
-  const curves = new Array(getNoCurves());
+  const curves = new Array(noCurves);
 
   const startX = 0;
   const endX = sideLength;
-  const totalCurvesRange = (getNoCurves() - 1) * curveGap;
+  const totalCurvesRange = (noCurves - 1) * curveGap;
 
   let curveY = (graphicsBuffer.height - totalCurvesRange) / 2;
 
   // Generate the curves (vector arrays)
-  for (let c = 0; c < getNoCurves(); c++) {
+  for (let c = 0; c < noCurves; c++) {
     curves[c] = generateCurveVectors(
       graphicsBuffer,
       startX,
@@ -153,44 +167,41 @@ function generateCurveData(graphicsBuffer) {
 }
 
 function generateCurveVectors(graphicsBuffer, startX, startY, endX, endY) {
-  const curveVectors = new Array(getNoPoints());
+  const curveVectors = new Array(noCurvePoints);
 
-  const flatCurves = true
+  const ctrl1X = sideLength / 2 + random(sideLength / 2);
+  const ctrl1Y = random(sideLength / 2);
 
-  // const ctrl1X = sideLength / 2 + random(sideLength / 2);
-  // const ctrl1Y = random(sideLength / 2);
+  const ctrl2X = sideLength / 2 + random(sideLength / 2);
+  const ctrl2Y = random(sideLength / 2) + sideLength / 2;
 
-  // const ctrl2X = sideLength / 2 + random(sideLength / 2);
-  // const ctrl2Y = random(sideLength / 2) + sideLength / 2;
+  // const ctrl1X = sideLength / 2;
+  // const ctrl1Y = sideLength / 2;
 
-  const ctrl1X = sideLength / 2 ;
-  const ctrl1Y = sideLength / 2;
-
-  const ctrl2X = sideLength / 2 ;
-  const ctrl2Y = sideLength / 2;
-
-
+  // const ctrl2X = sideLength / 2;
+  // const ctrl2Y = sideLength / 2;
 
   // DEBUG Draw the bezier curve
+  if (false) {
+    push();
+    graphicsBuffer.stroke(0, 0, 0, 50);
+    graphicsBuffer.strokeWeight(10); // Set stroke weight to 1
+    graphicsBuffer.noFill();
+    graphicsBuffer.bezier(
+      startX,
+      startY,
+      ctrl1X,
+      ctrl1Y,
+      ctrl2X,
+      ctrl2Y,
+      endX,
+      endY
+    );
+    pop();
+  }
 
-  push();
-  graphicsBuffer.stroke(0, 0, 0, 50);
-  graphicsBuffer.strokeWeight(10); // Set stroke weight to 1
-  graphicsBuffer.noFill();
-  graphicsBuffer.bezier(
-    startX,
-    startY,
-    ctrl1X,
-    ctrl1Y,
-    ctrl2X,
-    ctrl2Y,
-    endX,
-    endY
-  );
-  pop();
-
-  for (let i = 0; i < getNoPoints(); i++) {
-    let t = i / (getNoPoints() - 1);
+  for (let i = 0; i < noCurvePoints; i++) {
+    let t = i / (noCurvePoints - 1);
     let px = bezierPoint(startX, ctrl1X, ctrl2X, endX, t);
     let py = bezierPoint(startY, ctrl1Y, ctrl2Y, endY, t);
     curveVectors[i] = createVector(px, py);
@@ -202,26 +213,60 @@ function generateCurveVectors(graphicsBuffer, startX, startY, endX, endY) {
 function renderPanelsInBuffer(localBuffer, panels) {
   const drawPanels = true;
   if (drawPanels) {
-    const palettePicker = floor(random(4)); // Returns 0, 1, 2, 3, or 4
     const drawPanel = true;
     if (drawPanel) {
       push();
       localBuffer.stroke(0);
       // localBuffer.fill(panelFill);
-      // localBuffer.fill(palette[palettePicker]);
-      localBuffer.strokeWeight(1);
+      // localBuffer.strokeWeight(1);
       // localBuffer.noFill();
       for (let i = 0; i < panels.length; i++) {
         const p = panels[i];
+        const palettePicker = floor(random(4)); // Returns 0, 1, 2, 3, or 4
 
         localBuffer.beginShape();
-        localBuffer.vertex(p.topLeftX, p.topLeftY);
-        localBuffer.vertex(p.topRightX, p.topRightY);
-        localBuffer.vertex(p.bottomRightX, p.bottomRightY);
-        localBuffer.vertex(p.bottomLeftX, p.bottomLeftY);
+
+        let r, g, b, a;
+        const cPrimary = palettePrimary[palettePicker];
+        const cSecondary = palettePrimary[palettePicker];
+
+        let binary = int(random(2)); // returns 0 or 1
+        if (binary) {
+          r = red(cPrimary);
+          g = green(cPrimary);
+          b = blue(cPrimary);
+          // a = random(100, 255);
+        } else {
+          r = red(cSecondary);
+          g = green(cSecondary);
+          b = blue(cSecondary);
+          // a = random(50, 200);
+        }
+
+        localBuffer.fill(r, g, b, a);
+
+        let binary2 = int(random(2)); // returns 0 or 1
+
+        if (binary2) {
+          localBuffer.vertex(p.topLeftX, p.topLeftY);
+          localBuffer.vertex(p.topRightX, p.topRightY);
+          localBuffer.vertex(p.bottomRightX, p.bottomRightY);
+          localBuffer.vertex(p.bottomLeftX, p.bottomLeftY);
+        } else {
+          localBuffer.vertex(p.bottomRightX, p.bottomRightY);
+          localBuffer.vertex(p.topLeftX, p.topLeftY);
+          localBuffer.vertex(p.bottomLeftX, p.bottomLeftY);
+          localBuffer.vertex(p.topRightX, p.topRightY);
+        }
         localBuffer.endShape(CLOSE);
       }
       pop();
     }
   }
+}
+
+function getRandomPalette(paletteObj) {
+  let keys = Object.keys(paletteObj);
+  let randomKey = random(keys); // p5.js random() works with arrays
+  return paletteObj[randomKey];
 }
