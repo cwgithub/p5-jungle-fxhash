@@ -75,7 +75,7 @@ function setup() {
 
   const bufferPicker = floor(random(0, noGraphicsBuffers));
   panels = generatePanels(graphicsBuffers[bufferPicker]);
-  drawGrid(graphicsBuffers[0]);
+  // drawGrid(graphicsBuffers[0]);
 }
 
 function draw() {
