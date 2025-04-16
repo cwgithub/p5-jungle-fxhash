@@ -1,11 +1,19 @@
-let noBuffers = 1;
+let noGraphicsBuffers = 1;
 
-const sideLength = 1000;
+function getNoPoints() {
+  return 10;
+}
+function getNoCurves() {
+  return 15;
+}
+
+const sideLength = 1000; // Size of each buffer
 let curves = new Array(getNoCurves());
-let curveGap = sideLength / (getNoCurves() + 1);
+let curveGap = 100; // sideLength / (getNoCurves() + 1);
 
 let pointGap = sideLength / (getNoPoints() - 1);
 let topLine = new Array(getNoPoints());
+
 let bottomLine = new Array(getNoPoints());
 
 // let palette = ["#F8FAFC", "#D9EAFD", "#BCCCDC", "#9AA6B2", "#F14A00"];
@@ -23,29 +31,19 @@ const palettes = {
 };
 
 // Example usage in p5.js
-let palette = palettes.greens;
-
+let palette = palettes.forest;
 let panels = [];
-let buffers = new Array(noBuffers);
-let lastUpdateTime = 0;
-let updateInterval = 5000; // 5 seconds
-
+let graphicsBuffers = new Array(noGraphicsBuffers);
 let activeBackground = palette[1];
 let xOffset = 100;
 let yOffset = 100;
 
-function getNoPoints() {
-  return 50;
-}
-function getNoCurves() {
-  return 50;
-}
-
 function setup() {
-  // noLoop();
+  noLoop();
 
   createCanvas(
-    sideLength * noBuffers + 100 * (noBuffers + 1),
+    // sideLength * noBuffers + 100 * (noBuffers + 1),
+    sideLength + 200,
     sideLength + 200
   );
   background(activeBackground);
@@ -57,56 +55,50 @@ function setup() {
   }
 
   // create the buffers
-  for (let i = 0; i < noBuffers; i++) {
-    buffers[i] = createGraphics(sideLength, sideLength);
+  for (let i = 0; i < noGraphicsBuffers; i++) {
+    graphicsBuffers[i] = createGraphics(sideLength, sideLength);
   }
-  const bufferPicker = floor(random(0, noBuffers));
-  panels = generatePanels(buffers[bufferPicker]);
-  drawGrid(buffers[0]);
+
+  const bufferPicker = floor(random(0, noGraphicsBuffers));
+  panels = generatePanels(graphicsBuffers[bufferPicker]);
+  drawGrid(graphicsBuffers[0]);
 }
 
 function draw() {
-  if (deltasApplied < 450) {
-    mutatePanels(panels);
-  } else {
-    deltasApplied = 0;
-    deltaPicker = floor(random(4))
-    panels = generatePanels(buffers[0]);
-  }
-
-  renderPanelsInBuffer(buffers[0], panels);
-
-  image(buffers[0], xOffset, yOffset); // Draw image from its center
+  renderPanelsInBuffer(graphicsBuffers[0], panels);
+  image(graphicsBuffers[0], xOffset, yOffset); // Draw image from its center
 }
 
 function drawGrid(localBuffer) {
   push();
-  localBuffer.stroke(0);
+  localBuffer.stroke(180);
   localBuffer.strokeWeight(1);
+
+  const midHeight = localBuffer.height / 2;
+
+  localBuffer.line(0, midHeight, localBuffer.width, midHeight);
+
   // Draw vertical "grid" lines
-  const drawGridLines = false;
+  const drawGridLines = true;
   if (drawGridLines) {
-    for (let i = 0; i < getNoPoints(); i++) {
+    for (let x = 0; x < getNoPoints(); x++) {
       localBuffer.line(
-        topLine[i].x,
-        topLine[i].y,
-        bottomLine[i].x,
-        bottomLine[i].y
+        topLine[x].x,
+        topLine[x].y,
+        bottomLine[x].x,
+        bottomLine[x].y
       );
     }
   }
   pop();
 }
 
-function generatePanels() {
-  const startX = 0;
-  const endX = sideLength;
-
-  curves = generateCurveData(startX, endX);
+function generatePanels(graphicsBuffer) {
+  curves = generateCurveData(graphicsBuffer);
 
   // const drawables = [topLine, ...curves, bottomLine];
   // const drawables = [topLine, ...curves, bottomLine];
-  const drawables = [ ...curves];
+  const drawables = [...curves];
 
   // The body of this loop "looks ahead by 1"
   panels = [];
@@ -117,8 +109,6 @@ function generatePanels() {
     // Create the "Panels"
     for (let i = 0; i < getNoPoints(); i++) {
       if (i < getNoPoints() - 1) {
-
-
         const panel = {
           topLeftX: upper[i].x,
           topLeftY: upper[i].y,
@@ -138,41 +128,66 @@ function generatePanels() {
   return panels;
 }
 
-function generateCurveData(startX, endX) {
+function generateCurveData(graphicsBuffer) {
   const curves = new Array(getNoCurves());
+
+  const startX = 0;
+  const endX = sideLength;
+  const totalCurvesRange = (getNoCurves() - 1) * curveGap;
+
+  let curveY = (graphicsBuffer.height - totalCurvesRange) / 2;
 
   // Generate the curves (vector arrays)
   for (let c = 0; c < getNoCurves(); c++) {
     curves[c] = generateCurveVectors(
+      graphicsBuffer,
       startX,
-      curveGap + curveGap * c,
+      curveY,
       endX,
-      curveGap + curveGap * c
+      curveY
     );
+    curveY += curveGap; // Move down for the next curve
   }
 
   return curves;
 }
 
-function generateCurveVectors(startX, startY, endX, endY) {
+function generateCurveVectors(graphicsBuffer, startX, startY, endX, endY) {
   const curveVectors = new Array(getNoPoints());
 
-  const ctrl1X = sideLength / 2 + random(sideLength / 2);
-  const ctrl1Y = random(sideLength / 2);
-  const ctrl2X = sideLength / 2 + random(sideLength / 2);
-  const ctrl2Y = random(sideLength / 2) + sideLength / 2;
+  const flatCurves = true
 
-  // DBEUG Draw the bezier curve
-  // localBuffer.bezier(
-  //   startX,
-  //   startY,
-  //   ctrl1X,
-  //   ctrl1Y,
-  //   ctrl2X,
-  //   ctrl2Y,
-  //   endX,
-  //   endY
-  // );
+  // const ctrl1X = sideLength / 2 + random(sideLength / 2);
+  // const ctrl1Y = random(sideLength / 2);
+
+  // const ctrl2X = sideLength / 2 + random(sideLength / 2);
+  // const ctrl2Y = random(sideLength / 2) + sideLength / 2;
+
+  const ctrl1X = sideLength / 2 ;
+  const ctrl1Y = sideLength / 2;
+
+  const ctrl2X = sideLength / 2 ;
+  const ctrl2Y = sideLength / 2;
+
+
+
+  // DEBUG Draw the bezier curve
+
+  push();
+  graphicsBuffer.stroke(0, 0, 0, 50);
+  graphicsBuffer.strokeWeight(10); // Set stroke weight to 1
+  graphicsBuffer.noFill();
+  graphicsBuffer.bezier(
+    startX,
+    startY,
+    ctrl1X,
+    ctrl1Y,
+    ctrl2X,
+    ctrl2Y,
+    endX,
+    endY
+  );
+  pop();
 
   for (let i = 0; i < getNoPoints(); i++) {
     let t = i / (getNoPoints() - 1);
@@ -192,60 +207,21 @@ function renderPanelsInBuffer(localBuffer, panels) {
     if (drawPanel) {
       push();
       localBuffer.stroke(0);
-      localBuffer.fill(panelFill);
+      // localBuffer.fill(panelFill);
+      // localBuffer.fill(palette[palettePicker]);
       localBuffer.strokeWeight(1);
       // localBuffer.noFill();
       for (let i = 0; i < panels.length; i++) {
         const p = panels[i];
 
-        // localBuffer.fill(palette[palettePicker]);
         localBuffer.beginShape();
-
         localBuffer.vertex(p.topLeftX, p.topLeftY);
-        localBuffer.vertex(p.bottomRightX, p.bottomRightY);
         localBuffer.vertex(p.topRightX, p.topRightY);
+        localBuffer.vertex(p.bottomRightX, p.bottomRightY);
         localBuffer.vertex(p.bottomLeftX, p.bottomLeftY);
         localBuffer.endShape(CLOSE);
       }
       pop();
-    }
-  }
-}
-
-let deltasApplied = 0;
-let deltaPicker = 0;
-let panelFill = palette[2]
-
-function mutatePanels(panels) {
-  const xDelta = floor(random(2));
-
-  deltasApplied++;
-
-  for (let i = 0; i < panels.length; i++) {
-    const p = panels[i];
-
-
-
-    switch (deltaPicker) {
-      case 0:
-        p.topLeftY += random(2) / 10;
-        p.topLeftX += random(2) / 10;
-        break;
-
-      case 1:
-        p.topLeftY -= random(2) / 10;
-        p.topLeftX += random(2) / 10;
-        break;
-
-      case 2:
-        p.topLeftY -= random(2) / 10;
-        p.topLeftX -= random(2) / 10;
-        break;
-
-      case 3:
-        p.topLeftY -= random(2) / 10;
-        p.topLeftX -= random(2) / 10;
-        break;
     }
   }
 }
