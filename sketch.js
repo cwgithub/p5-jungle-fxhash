@@ -43,9 +43,15 @@ let graphicsBuffers = new Array(noGraphicsBuffers);
 let activeBackground;
 let xOffset = 100;
 let yOffset = 100;
+let seed;
 
 function setup() {
   noLoop();
+
+  let date = new Date();
+  seed = date.getTime();
+  randomSeed(seed);
+  noiseSeed(seed);
 
   noCurvePoints = floor(random(10, 40)); // Number of points in each curve
   noCurves = floor(random(10, 100));
@@ -81,10 +87,15 @@ function setup() {
 function draw() {
   renderPanelsInBuffer(graphicsBuffers[0], panels);
   image(graphicsBuffers[0], xOffset, yOffset); // Draw image from its center
+
+  let saveButton = createButton("save jpg");
+  saveButton.position(10, height + 25);
+  saveButton.mousePressed(saveArt);
 }
 
 function drawGrid(localBuffer) {
   push();
+
   localBuffer.stroke(180);
   localBuffer.strokeWeight(1);
 
@@ -245,7 +256,7 @@ function renderPanelsInBuffer(localBuffer, panels) {
 
         localBuffer.fill(r, g, b, a);
 
-        let binary2 = int(random(2)); // returns 0 or 1
+        let binary2 = true; // int(random(2)); // returns 0 or 1
 
         if (binary2) {
           localBuffer.vertex(p.topLeftX, p.topLeftY);
@@ -269,4 +280,8 @@ function getRandomPalette(paletteObj) {
   let keys = Object.keys(paletteObj);
   let randomKey = random(keys); // p5.js random() works with arrays
   return paletteObj[randomKey];
+}
+
+function saveArt() {
+  save(seed + ".jpg");
 }
